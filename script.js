@@ -24,118 +24,216 @@ chatButton.id = "chatButton";
 chatButton.innerHTML = "Send";
 userControls.appendChild(chatButton);
 
+var chatMessagesContainer = document.createElement("div");
+chatMessagesContainer.id = "chatMessagesContainer";
+chatContainer.appendChild(chatMessagesContainer);
+
 var chatMessages = document.createElement("div");
 chatMessages.id = "chatMessages";
-chatContainer.appendChild(chatMessages);
+chatMessagesContainer.appendChild(chatMessages);
 
-chatButton.addEventListener("click", function () {
-    var chatMessageTextValue = chatInput.value;
-    var chatMessageUserValue = "You";
-    var chatMessageDateValue = new Date().toLocaleString();
-    // extract date from chatMessageDateValue
-    var chatMessageDateValue = chatMessageDateValue.split(",")[0];
-    var chatMessage = document.createElement("div");
-    chatMessage.id = "chatMessage";
-    chatMessages.appendChild(chatMessage);
-    var chatMessageText = document.createElement("div");
-    chatMessageText.id = "chatMessageText";
-    chatMessage.appendChild(chatMessageText);
-    var messageDataContainer = document.createElement("div");
-    messageDataContainer.id = "messageDataContainer";
-    chatMessage.appendChild(messageDataContainer);
-    var chatMessageUser = document.createElement("div");
-    chatMessageUser.id = "chatMessageUser";
-    messageDataContainer.appendChild(chatMessageUser);
-    var chatMessageDate = document.createElement("div");
-    chatMessageDate.id = "chatMessageDate";
-    messageDataContainer.appendChild(chatMessageDate);
-    chatMessageText.innerHTML = chatMessageTextValue;
-    chatMessageUser.innerHTML = chatMessageUserValue;
-    chatMessageDate.innerHTML = chatMessageDateValue;
-    chatInput.value = "";
+getChatMessages();
 
-    var chatMessageStyle = {
-        position: "relative",
-        top: "0%",
-        left: "0%",
-        width: "96%",
-        height: "auto",
-        'min-height': "67px",
-        backgroundColor: "white",
-        display: "flex",
-        flexDirection: "column",
-        justifyContent: "center",
-        alignItems: "center",
-        borderRadius: "16px",
-        padding: "0.5em",
-        borderRadius: "42px",
-        margin: "0.5em",
+// function getChatMessages from endpoint http://stw-uvg-22.site:3001/chats
+// the format is an array of objects with the following properties: chatMessage, chatUser, chatDate
+function getChatMessages() {
+    var requestOptions = {
+        method: 'GET',
+        redirect: 'follow'
     };
 
-    setStylesOnElement(chatMessageStyle, chatMessage);
+    fetch("http://stw-uvg-22.site:3001/chats", requestOptions)
+        .then(response => response.text())
+        .then(result => {
+            // convert result to JSON
+            result = JSON.parse(result);
+            // console.log(result.length);
+            for (var i = 0; i < result.length; i++) {
+                createChatMessage(result[i].chat, result[i].user, result[i].date.substring(0, 10));
+            }
+        })
+        .catch(error => console.log('error', error));
+}
 
-    var chatMessageTextStyle = {
-        position: "absolute",
-        top: "35%",
-        left: "3%",
-        width: "85%",
-        height: "36%",
-        backgroundColor: "white",
-        display: "flex",
-        flexDirection: "column",
-        justifyContent: "center",
-        alignItems: "right",
-        borderRadius: "16px",
-        padding: "0.5em",
-        borderRadius: "42px",
-        fontSize: "1.5em",
+// autorefresh chat from endpoint every 2 seconds (for now)
+// setInterval(function () {
+//     getChatMessages()
+// }, 9000);
+
+// function to create a new chat message
+const createChatMessage = function (message, user, date) {
+    if (message, user, date) {
+        var chatMessageTextValue = message;
+        var chatMessageUserValue = user;
+        var chatMessageDateValue = date;
+        console.log(date)
+        // extract date from chatMessageDateValue
+        chatMessageDateValue = chatMessageDateValue.split(",")[0];
+        var chatMessage = document.createElement("div");
+        chatMessage.id = "chatMessage";
+        chatMessages.appendChild(chatMessage);
+        var chatMessageInfoContainer = document.createElement("div");
+        chatMessageInfoContainer.id = "chatMessageInfoContainer";
+        chatMessage.appendChild(chatMessageInfoContainer);
+        var chatMessageUser = document.createElement("div");
+        chatMessageUser.id = "chatMessageUser";
+        chatMessageInfoContainer.appendChild(chatMessageUser);
+        var chatMessageDate = document.createElement("div");
+        chatMessageDate.id = "chatMessageDate";
+        chatMessageInfoContainer.appendChild(chatMessageDate);
+        var chatMessageText = document.createElement("div");
+        chatMessageText.id = "chatMessageText";
+        chatMessage.appendChild(chatMessageText);
+        chatMessageText.innerHTML = chatMessageTextValue;
+        chatMessageUser.innerHTML = chatMessageUserValue;
+        chatMessageDate.innerHTML = chatMessageDateValue;
+        chatInput.value = "";
+
+        var chatMessageInfoContainerStyle = {
+            display: "flex",
+            flexDirection: "row",
+            justifyContent: "space-between",
+            width: "100%",
+        };
+
+        var chatMessageStyle = {
+            width: "96%",
+            backgroundColor: "white",
+            display: "flex",
+            flexDirection: "column",
+            borderRadius: "42px",
+            overflow: "auto",
+            'overflow-x': "hidden",
+            'overflow-y': "hidden",
+            'padding-left': "2%",
+            'padding-top': "1%",
+            'padding-bottom': "1%",
+            'min-height': "11%",
+            height: "fit-content",
+        };
+
+        var chatMessageTextStyle = {
+            width: "85%",
+            borderRadius: "16px",
+            fontSize: "1.5em",
+            'word-break': "break-all",
+        };
+
+        var chatMessageUserStyle = {
+            width: "49%",
+            borderRadius: "16px",
+            borderRadius: "42px",
+            fontSize: "1.5em",
+            'font-weight': "bold",
+        };
+
+        var chatMessageDateStyle = {
+            width: "15%",
+            borderRadius: "16px",
+            borderRadius: "42px",
+            fontSize: "1.5em",
+            'font-weight': "bold",
+        };
+
+        setStylesOnElement(chatMessageInfoContainerStyle, chatMessageInfoContainer);
+        setStylesOnElement(chatMessageDateStyle, chatMessageDate);
+        setStylesOnElement(chatMessageStyle, chatMessage);
+        setStylesOnElement(chatMessageTextStyle, chatMessageText);
+        setStylesOnElement(chatMessageUserStyle, chatMessageUser);
+
+        // set the 'min-height' of the object chatMessageStyle to the chatMessageUser current div height + chatMessageText current div height
+        chatMessageStyle["min-height"] = chatMessageUser.offsetHeight + chatMessageText.offsetHeight + "px";
+        setStylesOnElement(chatMessageStyle, chatMessage);
+
+        // scroll to bottom of chatMessages
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+    } else {
+        var chatMessageTextValue = chatInput.value;
+        var chatMessageUserValue = "You";
+        var chatMessageDateValue = new Date().toLocaleString();
+        // extract date from chatMessageDateValue
+        chatMessageDateValue = chatMessageDateValue.split(",")[0];
+        var chatMessage = document.createElement("div");
+        chatMessage.id = "chatMessage";
+        chatMessages.appendChild(chatMessage);
+        var chatMessageInfoContainer = document.createElement("div");
+        chatMessageInfoContainer.id = "chatMessageInfoContainer";
+        chatMessage.appendChild(chatMessageInfoContainer);
+        var chatMessageUser = document.createElement("div");
+        chatMessageUser.id = "chatMessageUser";
+        chatMessageInfoContainer.appendChild(chatMessageUser);
+        var chatMessageDate = document.createElement("div");
+        chatMessageDate.id = "chatMessageDate";
+        chatMessageInfoContainer.appendChild(chatMessageDate);
+        var chatMessageText = document.createElement("div");
+        chatMessageText.id = "chatMessageText";
+        chatMessage.appendChild(chatMessageText);
+        chatMessageText.innerHTML = chatMessageTextValue;
+        chatMessageUser.innerHTML = chatMessageUserValue;
+        chatMessageDate.innerHTML = chatMessageDateValue;
+        chatInput.value = "";
+
+        var chatMessageInfoContainerStyle = {
+            display: "flex",
+            flexDirection: "row",
+            justifyContent: "space-between",
+            width: "100%",
+        };
+
+        var chatMessageStyle = {
+            width: "96%",
+            backgroundColor: "white",
+            display: "flex",
+            flexDirection: "column",
+            borderRadius: "42px",
+            overflow: "auto",
+            'overflow-x': "hidden",
+            'overflow-y': "hidden",
+            'padding-left': "2%",
+            'padding-top': "1%",
+            'padding-bottom': "1%",
+            height: "fit-content",
+        };
+
+        var chatMessageTextStyle = {
+            width: "85%",
+            borderRadius: "16px",
+            fontSize: "1.5em",
+            'word-break': "break-all",
+        };
+
+        var chatMessageUserStyle = {
+            width: "49%",
+            borderRadius: "16px",
+            borderRadius: "42px",
+            fontSize: "1.5em",
+            'font-weight': "bold",
+        };
+
+        var chatMessageDateStyle = {
+            width: "15%",
+            borderRadius: "16px",
+            borderRadius: "42px",
+            fontSize: "1.5em",
+            'font-weight': "bold",
+        };
+
+        setStylesOnElement(chatMessageInfoContainerStyle, chatMessageInfoContainer);
+        setStylesOnElement(chatMessageStyle, chatMessage);
+        setStylesOnElement(chatMessageTextStyle, chatMessageText);
+        setStylesOnElement(chatMessageUserStyle, chatMessageUser);
+        setStylesOnElement(chatMessageDateStyle, chatMessageDate);
+
+        // set the 'min-height' of the object chatMessageStyle to the chatMessageUser current div height + chatMessageText current div height
+        chatMessageStyle["min-height"] = chatMessageUser.offsetHeight + chatMessageText.offsetHeight + "px";
+        setStylesOnElement(chatMessageStyle, chatMessage);
+
+        // scroll to bottom of chatMessages
+        chatMessages.scrollTop = chatMessages.scrollHeight;
     };
+}
 
-    setStylesOnElement(chatMessageTextStyle, chatMessageText);
-
-    var chatMessageUserStyle = {
-        position: "absolute",
-        top: "6%",
-        left: "3%",
-        width: "49%",
-        height: "10%",
-        backgroundColor: "white",
-        display: "flex",
-        flexDirection: "row",
-        borderRadius: "16px",
-        padding: "0.2em",
-        borderRadius: "42px",
-        fontSize: "1.5em",
-    };
-
-    setStylesOnElement(chatMessageUserStyle, chatMessageUser);
-
-    var chatMessageDateStyle = {
-        position: "absolute",
-        top: "6%",
-        left: "71%",
-        width: "15%",
-        height: "10%",
-        backgroundColor: "white",
-        display: "flex",
-        flexDirection: "row",
-        justifyContent: "center",
-        alignItems: "right",
-        borderRadius: "16px",
-        padding: "0.5em",
-        borderRadius: "42px",
-        fontSize: "1.5em",
-    };
-
-    // scroll to bottom of chatMessages
-    chatMessages.scrollTop = chatMessages.scrollHeight;
-
-    setStylesOnElement(chatMessageDateStyle, chatMessageDate);
-    setStylesOnElement(chatMessageStyle, chatMessage);
-    setStylesOnElement(chatMessageTextStyle, chatMessageText);
-    setStylesOnElement(chatMessageUserStyle, chatMessageUser);
-    setStylesOnElement(chatMessageDateStyle, chatMessageDate);
-});
+chatButton.addEventListener("click", createChatMessage);
 
 // When press enter, click the chat button
 chatInput.addEventListener("keyup", function (event) {
@@ -174,9 +272,9 @@ var chatContainerStyle = {
     backgroundColor: "gray",
     display: "flex",
     flexDirection: "column",
-    justifyContent: "center",
     alignItems: "center",
     borderRadius: "42px",
+    padding: "1%",
 };
 
 setStylesOnElement(chatContainerStyle, chatContainer);
@@ -231,35 +329,26 @@ var chatButtonStyle = {
 
 setStylesOnElement(chatButtonStyle, chatButton);
 
+var chatMessagesContainerStyle = {
+    height: "85%",
+    // backgroundColor: "red",
+    width: "97%",
+    padding: "1%",
+}
+
+setStylesOnElement(chatMessagesContainerStyle, chatMessagesContainer);
+
 var chatMessagesStyle = {
-    position: "absolute",
-    top: "3%",
-    left: "3%",
-    width: "94%",
-    height: "82%",
+    width: "59em",
+    height: "35em",
+    'max-height': "35em",
     backgroundColor: "gray",
     display: "flex",
     flexDirection: "column",
     borderRadius: "16px",
-    'overflow-y': "scroll",
+    'overflow-y': "auto",
+    'overflow-x': "hidden",
+    gap: "1em",
 };
 
 setStylesOnElement(chatMessagesStyle, chatMessages);
-
-var messageDataContainerStyle = {
-    position: "absolute",
-    top: "0%",
-    left: "0%",
-    width: "100%",
-    height: "10%",
-    backgroundColor: "white",
-    display: "flex",
-    flexDirection: "row",
-    justifyContent: "center",
-    alignItems: "center",
-    borderRadius: "16px",
-    padding: "0.5em",
-    borderRadius: "42px",
-};
-
-setStylesOnElement(messageDataContainerStyleStyle, messageDataContainerStyle);

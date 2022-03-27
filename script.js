@@ -1,5 +1,8 @@
 // Chat JavaScript
 
+// ask for username in alert and save to variable
+var currentUser = prompt("Please enter your name");
+
 var mainContainer = document.createElement("div");
 mainContainer.id = "mainContainer";
 document.body.appendChild(mainContainer);
@@ -26,11 +29,11 @@ userControls.appendChild(chatButton);
 
 var chatMessagesContainer = document.createElement("div");
 chatMessagesContainer.id = "chatMessagesContainer";
-chatContainer.appendChild(chatMessagesContainer);
+// chatContainer.appendChild(chatMessagesContainer);
 
 var chatMessages = document.createElement("div");
 chatMessages.id = "chatMessages";
-chatMessagesContainer.appendChild(chatMessages);
+chatContainer.appendChild(chatMessages);
 
 getChatMessages();
 
@@ -48,10 +51,30 @@ function getChatMessages() {
             // convert result to JSON
             result = JSON.parse(result);
             // console.log(result.length);
-            for (var i = 0; i < result.length; i++) {
+            // for (var i = 0; i < result.length; i++) {
+            //     createChatMessage(result[i].chat, result[i].user, result[i].date.substring(0, 10));
+            // }
+            // create chat message from the last element to the first
+            for (var i = result.length - 1; i >= 0; i--) {
                 createChatMessage(result[i].chat, result[i].user, result[i].date.substring(0, 10));
             }
         })
+        .catch(error => console.log('error', error));
+}
+
+// function postChatMessages to endpoint http://stw-uvg-22.site:3001/chats
+// the format is an array of objects with the following properties: user, chat
+function postChatMessages(user, chat) {
+    var requestOptions = {
+        method: 'POST',
+        redirect: 'follow',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ user: user, chat: chat })
+    };
+
+    fetch("http://stw-uvg-22.site:3001/chat", requestOptions)
+        .then(response => response.text())
+        .then(result => console.log(result))
         .catch(error => console.log('error', error));
 }
 
@@ -59,6 +82,22 @@ function getChatMessages() {
 // setInterval(function () {
 //     getChatMessages()
 // }, 9000);
+
+function validarURL(str) {
+    const patron = new RegExp("^(?:http(s)?:\\/\\/)?[\\w.-]+(?:\\.[\\w\\.-]+)+[\\w\\-\\._~:/?#[\\]@!\\$&'\\(\\)\\*\\+,;=.]+$");
+    return patron.test(str);
+}
+
+// function to validate if the a text contains an image
+function validateImage(text) {
+    var regex = /(https?:\/\/.*\.(?:png|jpg|jpeg|gif))/gi;
+    var match = regex.exec(text);
+    if (match) {
+        return match[0];
+    } else {
+        return false;
+    }
+}
 
 // function to create a new chat message
 const createChatMessage = function (message, user, date) {
@@ -83,7 +122,24 @@ const createChatMessage = function (message, user, date) {
         chatMessageInfoContainer.appendChild(chatMessageDate);
         var chatMessageText = document.createElement("div");
         chatMessageText.id = "chatMessageText";
+
+        // If the message contains an image, create a new div with the image inside
+        var image = validateImage(chatMessageTextValue);
+        if (image) {
+            var chatMessageImage = document.createElement("img");
+            chatMessageImage.id = "chatMessageImage";
+            chatMessageImage.src = image;
+            chatMessageImage.style.width = "400px";
+            chatMessageImage.style.height = "200px";
+            chatMessageImage.style.alignSelf = "center";
+            chatMessageImage.style.borderRadius = "42px";
+            chatMessage.appendChild(chatMessageImage);
+        } else {
+            chatMessageText.innerHTML = chatMessageTextValue;
+        }
+
         chatMessage.appendChild(chatMessageText);
+
         chatMessageText.innerHTML = chatMessageTextValue;
         chatMessageUser.innerHTML = chatMessageUserValue;
         chatMessageDate.innerHTML = chatMessageDateValue;
@@ -141,15 +197,21 @@ const createChatMessage = function (message, user, date) {
         setStylesOnElement(chatMessageTextStyle, chatMessageText);
         setStylesOnElement(chatMessageUserStyle, chatMessageUser);
 
-        // set the 'min-height' of the object chatMessageStyle to the chatMessageUser current div height + chatMessageText current div height
-        chatMessageStyle["min-height"] = chatMessageUser.offsetHeight + chatMessageText.offsetHeight + "px";
-        setStylesOnElement(chatMessageStyle, chatMessage);
+        if (image) {
+            // set the 'min-height' of the object chatMessageStyle to the chatMessageUser current div height + chatMessageText current div height
+            chatMessageStyle["min-height"] = chatMessageUser.offsetHeight + chatMessageText.offsetHeight + 200 + "px";
+            setStylesOnElement(chatMessageStyle, chatMessage);
+        } else {
+            // set the 'min-height' of the object chatMessageStyle to the chatMessageUser current div height + chatMessageText current div height
+            chatMessageStyle["min-height"] = chatMessageUser.offsetHeight + chatMessageText.offsetHeight + "px";
+            setStylesOnElement(chatMessageStyle, chatMessage);
+        }
 
         // scroll to bottom of chatMessages
         chatMessages.scrollTop = chatMessages.scrollHeight;
     } else {
         var chatMessageTextValue = chatInput.value;
-        var chatMessageUserValue = "You";
+        var chatMessageUserValue = currentUser;
         var chatMessageDateValue = new Date().toLocaleString();
         // extract date from chatMessageDateValue
         chatMessageDateValue = chatMessageDateValue.split(",")[0];
@@ -167,7 +229,24 @@ const createChatMessage = function (message, user, date) {
         chatMessageInfoContainer.appendChild(chatMessageDate);
         var chatMessageText = document.createElement("div");
         chatMessageText.id = "chatMessageText";
+
+        // If the message contains an image, create a new div with the image inside
+        var image = validateImage(chatMessageTextValue);
+        if (image) {
+            var chatMessageImage = document.createElement("img");
+            chatMessageImage.id = "chatMessageImage";
+            chatMessageImage.src = image;
+            chatMessageImage.style.width = "400px";
+            chatMessageImage.style.height = "200px";
+            chatMessageImage.style.alignSelf = "center";
+            chatMessageImage.style.borderRadius = "42px";
+            chatMessage.appendChild(chatMessageImage);
+        } else {
+            chatMessageText.innerHTML = chatMessageTextValue;
+        }
+
         chatMessage.appendChild(chatMessageText);
+
         chatMessageText.innerHTML = chatMessageTextValue;
         chatMessageUser.innerHTML = chatMessageUserValue;
         chatMessageDate.innerHTML = chatMessageDateValue;
@@ -224,12 +303,21 @@ const createChatMessage = function (message, user, date) {
         setStylesOnElement(chatMessageUserStyle, chatMessageUser);
         setStylesOnElement(chatMessageDateStyle, chatMessageDate);
 
-        // set the 'min-height' of the object chatMessageStyle to the chatMessageUser current div height + chatMessageText current div height
-        chatMessageStyle["min-height"] = chatMessageUser.offsetHeight + chatMessageText.offsetHeight + "px";
-        setStylesOnElement(chatMessageStyle, chatMessage);
+        if (image) {
+            // set the 'min-height' of the object chatMessageStyle to the chatMessageUser current div height + chatMessageText current div height
+            chatMessageStyle["min-height"] = chatMessageUser.offsetHeight + chatMessageText.offsetHeight + 200 + "px";
+            setStylesOnElement(chatMessageStyle, chatMessage);
+        } else {
+            // set the 'min-height' of the object chatMessageStyle to the chatMessageUser current div height + chatMessageText current div height
+            chatMessageStyle["min-height"] = chatMessageUser.offsetHeight + chatMessageText.offsetHeight + "px";
+            setStylesOnElement(chatMessageStyle, chatMessage);
+        }
 
         // scroll to bottom of chatMessages
         chatMessages.scrollTop = chatMessages.scrollHeight;
+
+        // post message to endpoint using postChatMessages function
+        // postChatMessages(chatMessageUserValue, chatMessageTextValue);
     };
 }
 
@@ -268,13 +356,13 @@ var chatContainerStyle = {
     top: "7%",
     left: "6%",
     width: "87%",
-    height: "86%",
+    height: "82%",
     backgroundColor: "gray",
     display: "flex",
     flexDirection: "column",
     alignItems: "center",
     borderRadius: "42px",
-    padding: "1%",
+    padding: "2%",
 };
 
 setStylesOnElement(chatContainerStyle, chatContainer);
@@ -339,9 +427,11 @@ var chatMessagesContainerStyle = {
 setStylesOnElement(chatMessagesContainerStyle, chatMessagesContainer);
 
 var chatMessagesStyle = {
-    width: "59em",
-    height: "35em",
-    'max-height': "35em",
+    top: "0%",
+    left: "0%",
+    width: "100%",
+    height: "89%",
+    // 'max-height': "35em",
     backgroundColor: "gray",
     display: "flex",
     flexDirection: "column",

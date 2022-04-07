@@ -3,9 +3,59 @@
 // ask for username in alert and save to variable
 var currentUser = prompt("Please enter your name");
 
+if (!currentUser) {
+    currentUser = "You";
+}
+
 var mainContainer = document.createElement("div");
 mainContainer.id = "mainContainer";
 document.body.appendChild(mainContainer);
+
+var filterContainer = document.createElement("div");
+filterContainer.id = "filterContainer";
+mainContainer.appendChild(filterContainer);
+
+var filterText = document.createElement("div");
+filterText.id = "filterText";
+filterText.innerHTML = "Filter chats by text: ";
+filterContainer.appendChild(filterText);
+
+var filterInput = document.createElement("input");
+filterInput.id = "filterText";
+filterInput.placeholder = "Username";
+filterInput.className = "filterInput";
+filterContainer.appendChild(filterInput);
+
+var filterButton = document.createElement("button");
+filterButton.id = "filterButton";
+filterButton.innerHTML = "Filter";
+filterButton.onclick = function () {
+    // console.log(filterInput.value);
+    filterChatMessages(filterInput.value);
+};
+filterContainer.appendChild(filterButton);
+
+var autorefreshContainer = document.createElement("div");
+autorefreshContainer.id = "autorefreshContainer";
+mainContainer.appendChild(autorefreshContainer);
+
+var autorefreshText = document.createElement("div");
+autorefreshText.id = "autorefreshText";
+autorefreshText.innerHTML = "Autorefresh every 10 seconds: ";
+autorefreshContainer.appendChild(autorefreshText);
+
+var autorefreshCheckbox = document.createElement("input");
+autorefreshCheckbox.type = "checkbox";
+autorefreshCheckbox.id = "autorefreshCheckbox";
+autorefreshCheckbox.checked = false;
+autorefreshCheckbox.onchange = function () {
+    if (autorefreshCheckbox.checked) {
+        autorefreshChatMessages();
+    } else {
+        clearInterval(autorefreshInterval);
+    }
+};
+autorefreshContainer.appendChild(autorefreshCheckbox);
 
 var chatContainer = document.createElement("div");
 chatContainer.id = "chatContainer";
@@ -78,20 +128,40 @@ function postChatMessages(user, chat) {
         .catch(error => console.log('error', error));
 }
 
+function autorefreshChatMessages() {
+    autorefreshInterval = setInterval(function () {
+        // alert("Autorefresh");
+        deleteAllChildren(chatMessages);
+        getChatMessages();
+    }, 10000);
+}
+
+function deleteAllChildren(element) {
+    while (element.firstChild) {
+        element.removeChild(element.firstChild);
+    }
+}
+
 // autorefresh chat from endpoint every 2 seconds (for now)
 // setInterval(function () {
 //     getChatMessages()
 // }, 9000);
 
-function validarURL(str) {
-    const patron = new RegExp("^(?:http(s)?:\\/\\/)?[\\w.-]+(?:\\.[\\w\\.-]+)+[\\w\\-\\._~:/?#[\\]@!\\$&'\\(\\)\\*\\+,;=.]+$");
-    return patron.test(str);
-}
-
 // function to validate if the a text contains an image
 function validateImage(text) {
     var regex = /(https?:\/\/.*\.(?:png|jpg|jpeg|gif))/gi;
     var match = regex.exec(text);
+    if (match) {
+        return match[0];
+    } else {
+        return false;
+    }
+}
+
+// function to validate if a text contains a url to another page
+function validarURL(str) {
+    var regex = /(https?:\/\/(?:www\.|(?!www))[a-zA-Z0-9][a-zA-Z0-9-]+[a-zA-Z0-9]\.[^\s]{2,}|www\.[a-zA-Z0-9][a-zA-Z0-9-]+[a-zA-Z0-9]\.[^\s]{2,}|https?:\/\/(?:www\.|(?!www))[a-zA-Z0-9]\.[^\s]{2,}|www\.[a-zA-Z0-9]\.[^\s]{2,})/gi;
+    var match = regex.exec(str);
     if (match) {
         return match[0];
     } else {
@@ -232,7 +302,7 @@ const createChatMessage = function (message, user, date) {
 
         // If the message contains an image, create a new div with the image inside
         var image = validateImage(chatMessageTextValue);
-        if (image) {
+        if (image && !link) {
             var chatMessageImage = document.createElement("img");
             chatMessageImage.id = "chatMessageImage";
             chatMessageImage.src = image;
@@ -241,6 +311,21 @@ const createChatMessage = function (message, user, date) {
             chatMessageImage.style.alignSelf = "center";
             chatMessageImage.style.borderRadius = "42px";
             chatMessage.appendChild(chatMessageImage);
+        } else {
+            chatMessageText.innerHTML = chatMessageTextValue;
+        }
+
+        // If the message contains a web page link, create iframe with the link inside
+        var link = validarURL(chatMessageTextValue);
+        if (link && !image) {
+            var chatMessageLink = document.createElement("iframe");
+            chatMessageLink.id = "chatMessageLink";
+            chatMessageLink.src = link;
+            chatMessageLink.style.width = "400px";
+            chatMessageLink.style.height = "200px";
+            chatMessageLink.style.alignSelf = "center";
+            chatMessageLink.style.borderRadius = "42px";
+            chatMessage.appendChild(chatMessageLink);
         } else {
             chatMessageText.innerHTML = chatMessageTextValue;
         }
@@ -303,7 +388,7 @@ const createChatMessage = function (message, user, date) {
         setStylesOnElement(chatMessageUserStyle, chatMessageUser);
         setStylesOnElement(chatMessageDateStyle, chatMessageDate);
 
-        if (image) {
+        if (image || link) {
             // set the 'min-height' of the object chatMessageStyle to the chatMessageUser current div height + chatMessageText current div height
             chatMessageStyle["min-height"] = chatMessageUser.offsetHeight + chatMessageText.offsetHeight + 200 + "px";
             setStylesOnElement(chatMessageStyle, chatMessage);
@@ -317,7 +402,7 @@ const createChatMessage = function (message, user, date) {
         chatMessages.scrollTop = chatMessages.scrollHeight;
 
         // post message to endpoint using postChatMessages function
-        // postChatMessages(chatMessageUserValue, chatMessageTextValue);
+        postChatMessages(chatMessageUserValue, chatMessageTextValue);
     };
 }
 
@@ -330,6 +415,26 @@ chatInput.addEventListener("keyup", function (event) {
         chatButton.click();
     }
 });
+
+// function to filter chatMessages divs by its text content
+function filterChatMessages(filter) {
+    var chatMessages = document.getElementById("chatMessages");
+    var chatMessagesChildren = chatMessages.children;
+    var chatMessageTexts = [];
+    for (var i = 0; i < chatMessagesChildren.length; i++) {
+        chatMessageTexts.push(chatMessagesChildren[i].children[1].innerHTML);
+    }
+    var filteredChatMessages = chatMessageTexts.filter(function (chatMessageText) {
+        return chatMessageText.toLowerCase().indexOf(filter.toLowerCase()) > -1;
+    });
+    for (var i = 0; i < chatMessagesChildren.length; i++) {
+        if (filteredChatMessages.indexOf(chatMessagesChildren[i].children[1].innerHTML) > -1) {
+            chatMessagesChildren[i].style.display = "flex";
+        } else {
+            chatMessagesChildren[i].style.display = "none";
+        }
+    }
+}
 
 // Style the chat
 
@@ -351,12 +456,52 @@ var mainContainerStyle = {
 
 setStylesOnElement(mainContainerStyle, mainContainer);
 
+var filterContainerStyle = {
+    position: "absolute",
+    width: "100%",
+    top: "5%",
+    left: "8%",
+    display: "flex",
+    flexDirection: "row",
+    gap: "1%",
+};
+
+setStylesOnElement(filterContainerStyle, filterContainer);
+
+var filterTextStyle = {
+    color: "white",
+    fontSize: "1.5em",
+    'font-weight': "bold",
+};
+
+setStylesOnElement(filterTextStyle, filterText);
+
+var autorefreshContainerStyle = {
+    position: "absolute",
+    width: "100%",
+    top: "10%",
+    left: "8%",
+    display: "flex",
+    flexDirection: "row",
+    gap: "1%",
+};
+
+setStylesOnElement(autorefreshContainerStyle, autorefreshContainer);
+
+var autorefreshTextStyle = {
+    color: "white",
+    fontSize: "1.5em",
+    'font-weight': "bold",
+};
+
+setStylesOnElement(autorefreshTextStyle, autorefreshText);
+
 var chatContainerStyle = {
     position: "absolute",
-    top: "7%",
+    top: "15%",
     left: "6%",
     width: "87%",
-    height: "82%",
+    height: "74%",
     backgroundColor: "gray",
     display: "flex",
     flexDirection: "column",
